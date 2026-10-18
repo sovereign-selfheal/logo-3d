@@ -12,7 +12,7 @@ The mark is the favicon of the site. A request (the red line) reaches the gatewa
 which sends it to the cloud model (the curve going up) or to the local model (the curve going down).
 Its geometry is copied from `favicon.svg` into `src/logo_3d/params.py`.
 
-On the table, the plaque stands in the slot of its stand and leans back by 15 degrees, so the
+On the table, the plaque stands in the slot of its stand and leans back by 8 degrees, so the
 people in the room can see it:
 
 <img src="docs/plaque-on-stand.png" alt="The plaque standing in its stand, a low black block, and leaning back a little" width="380">
@@ -61,7 +61,7 @@ the solid, module by module, and decode it.
 | `out/plaque.3mf` | the plaque, 140 mm, with the mark and the address of the site |
 | `out/keychain.3mf` | a 40 mm keychain with a hole for a key ring; add copies in the slicer |
 | `out/keychain_name.3mf` | the same keychain, 40 x 50 mm, with the name of the project under the mark; the same color changes |
-| `out/stand.3mf` | the stand: the plaque leans back by 15 degrees; one color, no color change |
+| `out/stand.3mf` | the stand: the plaque leans back by 8 degrees; one color, no color change |
 | `out/coupon.3mf` | the test print: a ladder of color pads and a sample of the address |
 | `out/qr_plaque.3mf` | the QR plaque, 140 mm: a QR code of the site, dark on light |
 | `out/*.stl`, `out/*.step` | the same parts as STL (any slicer) and STEP (real surfaces, for CAD) |
@@ -120,7 +120,7 @@ sudo apt install libgl1 libx11-6        # Debian, Ubuntu
 | Setting | Suggestion |
 |---|---|
 | Nozzle / layer height | 0.4 mm / 0.2 mm, first layer 0.2 mm |
-| Supports | none: every wall is vertical, and the slot of the stand leans by 15 degrees only |
+| Supports | none: every wall is vertical, and the slot of the stand leans by 8 degrees only |
 | Infill | the default of the profile |
 | Sheet | textured or satin; on smooth PEI use glue stick, because PETG sticks too well |
 | Material | Prusament PETG: all the spools above have the same temperatures (240-260 °C, bed 70-90 °C) |
@@ -157,7 +157,7 @@ The parameters worth knowing:
 | `keychain_size` | 40.0 | side of a keychain |
 | `name_text` | `sovereign\|selfheal` | name on the keychain; `\|` starts a new line |
 | `ring_hole_dia` | 5.0 | hole for the key ring |
-| `slot_lean` | 15.0 | angle of the plaque in the stand, from the vertical |
+| `slot_lean` | 8.0 | angle of the plaque in the stand, from the vertical; it leans on the back of the slot |
 | `slot_clearance` | 0.6 | gap between the plaque and the slot |
 | `qr_url` | `https://sovereign-selfheal.github.io/` | address in the QR code |
 | `qr_error` | `q` | error correction of the QR code: `l`, `m`, `q` or `h` |

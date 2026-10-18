@@ -173,7 +173,7 @@ class Params:
     #: on the back of the slot, so the fit does not need to be tight.
     slot_clearance: float = 0.6
     #: Angle of the plaque from the vertical.
-    slot_lean: float = 15.0
+    slot_lean: float = 8.0
     #: Distance from the front edge of the stand to the slot, on the top face.
     slot_front: float = 14.0
     #: Chamfer of the top edges of the stand.
