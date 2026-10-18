@@ -6,9 +6,9 @@ Guidance for AI coding agents and humans working in this repo. Read it fully bef
 
 The logo of the demo as printable parts, for events where the demo is presented (the first one is
 Linux Day Milano, 2026-10-24): a table plaque with the address of the site, a plaque with a QR code of
-the site, keychains, a stand for the plaques and a test coupon. The model is written in build123d and
-exported to STL, 3MF and STEP. This
-repo changes no cluster, and no other repo depends on it.
+the site, keychains (one with the name of the project), a stand for the plaques and a test coupon.
+The model is written in build123d and exported to STL, 3MF and STEP. This repo changes no cluster,
+and no other repo depends on it.
 
 ## 2. Contracts
 
@@ -41,7 +41,7 @@ repo changes no cluster, and no other repo depends on it.
 src/logo_3d/
   params.py     every dimension, the favicon geometry, the spools and the bands
   mark.py       the mark as flat sketches, one per band
-  parts.py      plaque, keychain, stand, coupon and QR plaque; on_stand() places a plaque in the stand,
+  parts.py      plaque, keychains, stand, coupon and QR plaque; on_stand() places a plaque in the stand,
                 split_bands() cuts a part by color
   preview.py    colored PNG previews (matplotlib)
   cli.py        the exporter (scripts/export.py runs it from the repo)

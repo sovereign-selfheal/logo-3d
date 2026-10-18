@@ -38,6 +38,11 @@ def keychain() -> Part:
 
 
 @pytest.fixture(scope="module")
+def keychain_name() -> Part:
+    return parts.build_keychain_name(p)
+
+
+@pytest.fixture(scope="module")
 def stand() -> Part:
     return parts.build_stand(p)
 
@@ -53,10 +58,11 @@ def qr_plaque() -> Part:
 
 
 @pytest.fixture(scope="module")
-def all_parts(plaque, keychain, stand, coupon, qr_plaque) -> dict[str, Part]:
+def all_parts(plaque, keychain, keychain_name, stand, coupon, qr_plaque) -> dict[str, Part]:
     return {
         "plaque": plaque,
         "keychain": keychain,
+        "keychain_name": keychain_name,
         "stand": stand,
         "coupon": coupon,
         "qr_plaque": qr_plaque,
@@ -121,7 +127,7 @@ def test_parts_fit_the_bed(all_parts):
 
 
 def test_heights(all_parts):
-    for name in ("plaque", "keychain", "coupon"):
+    for name in ("plaque", "keychain", "keychain_name", "coupon"):
         box = all_parts[name].bounding_box()
         assert box.min.Z == pytest.approx(0.0), name
         assert box.max.Z == pytest.approx(p.total_height), name
@@ -147,15 +153,18 @@ def _check_column(part: Part, x: float, y: float, top: float) -> None:
     assert not part.is_inside(Vector(x, y, top + EPS)), (x, y, top)
 
 
-@pytest.mark.parametrize("name", ["plaque", "keychain"])
+@pytest.mark.parametrize("name", ["plaque", "keychain", "keychain_name"])
 def test_each_element_shows_its_own_color(name, all_parts):
     part = all_parts[name]
     if name == "plaque":
         scale, shift = p.plaque_scale, p.plaque_mark_shift
         empty = (-50.0, -30.0)
-    else:
+    elif name == "keychain":
         scale, shift = p.keychain_scale, 0.0
         empty = (-14.0, -14.0)
+    else:
+        scale, shift = p.keychain_scale, 0.0
+        empty = (-14.0, 8.0)
 
     def at(point):
         return point[0] * scale, point[1] * scale + shift
@@ -186,13 +195,41 @@ def test_address_has_the_planned_width_and_stays_clear():
     assert (address & offset(mark, amount=4.0)).area < 1e-6, "the address touches the mark"
 
 
-def test_ring_hole_goes_through_and_clears_the_mark(keychain):
+@pytest.mark.parametrize("name", ["keychain", "keychain_name"])
+def test_ring_hole_goes_through_and_clears_the_mark(name, all_parts):
+    keychain = all_parts[name]
     x, y = parts.ring_hole_centre(p)
     assert not keychain.is_inside(Vector(x, y, p.base_height / 2))
     assert keychain.is_inside(Vector(x, y + p.ring_hole_dia / 2 + EPS, p.base_height / 2))
     mark = _union(mark_sketches(p.keychain_scale))
     grown = Pos(x, y, 0) * Circle(p.ring_hole_dia / 2 + 2 * EXTRUSION_WIDTH)
     assert (mark & grown).area < 1e-6
+
+
+def test_name_is_printable_and_stays_clear(keychain_name, keychain):
+    lines = parts.name_lines(p)
+    assert len(lines) == len(p.name_text.split("|"))
+    widths = [line.bounding_box().size.X for line in lines]
+    assert max(widths) == pytest.approx(p.name_width, abs=0.01)
+    assert parts.STEM * parts.name_font_size(p) >= 2 * EXTRUSION_WIDTH
+    # The lines do not touch: two extrusions at least between them. (A 2D offset
+    # of the letters fails in OpenCascade, so the check measures the distance.)
+    for upper, lower in zip(lines, lines[1:], strict=False):
+        assert upper.distance_to(lower) >= 2 * EXTRUSION_WIDTH
+    mark = _union(mark_sketches(p.keychain_scale))
+    assert min(line.distance_to(mark) for line in lines) >= p.name_gap - EPS
+    # Every letter stands on the plate, at least 2 mm from the edge.
+    box = keychain_name.bounding_box()
+    for line in lines:
+        text_box = line.bounding_box()
+        assert text_box.min.X >= box.min.X + 2 and text_box.max.X <= box.max.X - 2
+        assert text_box.min.Y >= box.min.Y + 2
+    # The name is in the color of the gateway: it fills the top band, on top of
+    # what the keychain without the name has there.
+    text_area = sum(line.area for line in lines)
+    named = parts.split_bands(keychain_name, p)["gateway"].volume
+    plain = parts.split_bands(keychain, p)["gateway"].volume
+    assert named - plain == pytest.approx(text_area * p.band_height, rel=1e-3)
 
 
 def _plaque_in_stand(plaque: Part, sink: float = 0.0) -> Part:
@@ -302,6 +339,8 @@ def test_qr_margin_stays_whole_above_the_stand(qr_plaque):
         {"address": "  "},
         {"qr_error": "x"},
         {"qr_quiet_zone": 2},
+        {"name_text": "sovereign-||selfheal"},
+        {"name_line_pitch": 0.8},
     ],
 )
 def test_validate_refuses_bad_parameters(changes):

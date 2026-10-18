@@ -14,6 +14,7 @@ from logo_3d.params import DEFAULT, FILAMENTS, PETG_DENSITY, Params
 from logo_3d.parts import (
     build_coupon,
     build_keychain,
+    build_keychain_name,
     build_plaque,
     build_qr_plaque,
     build_stand,
@@ -26,6 +27,7 @@ DEFAULT_OUT = Path("out")
 PARTS: dict[str, Callable[[Params], Part]] = {
     "plaque": build_plaque,
     "keychain": build_keychain,
+    "keychain_name": build_keychain_name,
     "stand": build_stand,
     "coupon": build_coupon,
     "qr_plaque": build_qr_plaque,
@@ -35,6 +37,7 @@ PARTS: dict[str, Callable[[Params], Part]] = {
 SCHEME_OF = {
     "plaque": "logo",
     "keychain": "logo",
+    "keychain_name": "logo",
     "stand": "plain",
     "coupon": "logo",
     "qr_plaque": "qr",

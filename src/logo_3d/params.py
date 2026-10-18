@@ -140,6 +140,22 @@ class Params:
     #: Material between the hole and the top edge.
     ring_hole_wall: float = 2.5
 
+    # --- Keychain with the name -----------------------------------------------
+    # As wide as the keychain and with the same mark and hole, but longer: the
+    # name of the project goes under the mark, in the color of the gateway.
+    #: The name; "|" starts a new line. On one line, 40 mm wide, its strokes
+    #: would be too thin to print.
+    name_text: str = "sovereign-|selfheal"
+    #: Width of the longest line; the font size follows from it.
+    name_width: float = 34.0
+    #: Distance between two baselines, in units of the font size: the tail of
+    #: the g stays clear of the letters of the next line.
+    name_line_pitch: float = 1.12
+    #: Gap between the mark and the text.
+    name_gap: float = 2.5
+    #: Margin under the text, down to the bottom edge.
+    name_margin: float = 3.5
+
     # --- Stand ----------------------------------------------------------------
     #: The stand is a block with a slot that holds the plaque, leaning back.
     stand_length: float = 90.0
@@ -270,6 +286,10 @@ class Params:
             problems.append("the slot is too deep for the height of the stand")
         if not self.address.strip() or not self.sample_text.strip():
             problems.append("the address and the sample text must not be empty")
+        if not all(line.strip() for line in self.name_text.split("|")):
+            problems.append("the name of the keychain has an empty line")
+        if self.name_line_pitch < 1.0:
+            problems.append("lines of the name closer than 1.0 font size would touch")
         if not self.qr_url.strip():
             problems.append("the QR code needs an address")
         if self.qr_error not in ("l", "m", "q", "h"):

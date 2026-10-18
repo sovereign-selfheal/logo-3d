@@ -30,12 +30,27 @@ from build123d import (
     Rot,
     Sketch,
     Text,
+    TextAlign,
     chamfer,
     extrude,
 )
 
 from logo_3d.mark import mark_outline, mark_sketches
-from logo_3d.params import BANDS, DEFAULT, EXTRUSION_WIDTH, QR_OVERLAP, Params
+from logo_3d.params import (
+    BANDS,
+    DEFAULT,
+    EXTRUSION_WIDTH,
+    MARK_CORNER,
+    MARK_DOT_RADIUS,
+    MARK_LOCAL,
+    MARK_UNITS,
+    QR_OVERLAP,
+    Params,
+)
+
+#: Thickness of the stem of an "l" in Red Hat Display Bold, in units of the
+#: font size: the thinnest stroke of the text.
+STEM = 0.137
 
 FONT = Path(__file__).with_name("fonts") / "RedHatDisplay-Bold.ttf"
 
@@ -92,6 +107,59 @@ def build_keychain(p: Params = DEFAULT) -> Part:
     hole = Pos(*ring_hole_centre(p), 0) * Circle(p.ring_hole_dia / 2)
     keychain = extrude(mark_outline(p.keychain_size) - hole, amount=p.base_height)
     return _raise_mark(keychain, mark_sketches(p.keychain_scale), p)
+
+
+def name_font_size(p: Params = DEFAULT) -> float:
+    """Font size that makes the longest line of the name ``name_width`` wide."""
+    longest = max(_text_width(line) for line in p.name_text.split("|"))
+    return _PROBE_SIZE * p.name_width / longest
+
+
+def name_lines(p: Params = DEFAULT) -> list[Sketch]:
+    """The lines of the name, centred on x = 0, the first one just under the mark.
+
+    The lines are placed by their baselines, ``name_line_pitch`` font sizes
+    apart, so a line with a g and a line without one keep the same rhythm.
+    """
+    size = name_font_size(p)
+    mark_bottom = (MARK_LOCAL[-1][1] - MARK_DOT_RADIUS) * p.keychain_scale
+    lines, baseline = [], None
+    for line in p.name_text.split("|"):
+        # Bottom alignment puts the baseline of the line at y = 0.
+        text = Text(
+            line, size, font_path=str(FONT), text_align=(TextAlign.CENTER, TextAlign.BOTTOM)
+        )
+        if baseline is None:
+            baseline = mark_bottom - p.name_gap - text.bounding_box().max.Y
+        else:
+            baseline -= p.name_line_pitch * size
+        lines.append(Pos(0, baseline, 0) * text)
+    return lines
+
+
+def build_keychain_name(p: Params = DEFAULT) -> Part:
+    """The keychain with the name of the project under the mark.
+
+    The top is the same as on :func:`build_keychain` (outline, mark and ring
+    hole); the keychain is longer, to make room for the name, in the color of
+    the gateway.
+    """
+    p.validate()
+    if STEM * name_font_size(p) < 2 * EXTRUSION_WIDTH:
+        raise ValueError("the name is too small to print: shorten the lines or widen them")
+    lines = name_lines(p)
+    top = p.keychain_size / 2
+    bottom = min(line.bounding_box().min.Y for line in lines) - p.name_margin
+    corner = MARK_CORNER * p.keychain_size / MARK_UNITS
+    outline = Pos(0, (top + bottom) / 2, 0) * RectangleRounded(
+        p.keychain_size, top - bottom, corner
+    )
+    hole = Pos(*ring_hole_centre(p), 0) * Circle(p.ring_hole_dia / 2)
+    keychain = extrude(outline - hole, amount=p.base_height)
+    keychain = _raise_mark(keychain, mark_sketches(p.keychain_scale), p)
+    for line in lines:
+        keychain += _raise(line, p, p.band_top("gateway"))
+    return keychain
 
 
 def slot_bottom(p: Params = DEFAULT) -> tuple[float, float, float]:

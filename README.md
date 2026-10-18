@@ -2,8 +2,8 @@
 
 The logo of the demo **Sovereign Self-Healing: LLM Routing and AI SRE Triage on OpenShift AI**
 (<https://sovereign-selfheal.github.io/>) as parts for a 3D printer with one nozzle: a table plaque
-with the address of the site, a second plaque with a QR code of the site, keychains, a stand for the
-plaques and a short test print. The model is
+with the address of the site, a second plaque with a QR code of the site, keychains (one of them
+with the name of the project), a stand for the plaques and a short test print. The model is
 written in [build123d](https://github.com/gumyr/build123d) and exported to STL, 3MF and STEP.
 
 <img src="docs/plaque.png" alt="Preview of the plaque: a black rounded square with a red line and node that split into a yellow curve going up and a green curve going down, and the address of the site in red" width="380">
@@ -60,13 +60,14 @@ the solid, module by module, and decode it.
 |---|---|
 | `out/plaque.3mf` | the plaque, 140 mm, with the mark and the address of the site |
 | `out/keychain.3mf` | a 40 mm keychain with a hole for a key ring; add copies in the slicer |
+| `out/keychain_name.3mf` | the same keychain, 40 x 50 mm, with the name of the project under the mark; the same color changes |
 | `out/stand.3mf` | the stand: the plaque leans back by 15 degrees; one color, no color change |
 | `out/coupon.3mf` | the test print: a ladder of color pads and a sample of the address |
 | `out/qr_plaque.3mf` | the QR plaque, 140 mm: a QR code of the site, dark on light |
 | `out/*.stl`, `out/*.step` | the same parts as STL (any slicer) and STEP (real surfaces, for CAD) |
 | `out/*.png` | colored previews, with `--preview`; `*_on_stand.png` show the plaques in their stands |
 
-<img src="docs/keychain.png" alt="Preview of a keychain: the same mark on a 40 mm square, with a hole at the top" width="250"> <img src="docs/coupon.png" alt="Preview of the coupon: three rows of four pads, red, yellow and green, over the word github.io in red" width="250">
+<img src="docs/keychain.png" alt="Preview of a keychain: the same mark on a 40 mm square, with a hole at the top" width="250"> <img src="docs/keychain-name.png" alt="Preview of the keychain with the name: the mark, and sovereign-selfheal in red on two lines under it" width="250"> <img src="docs/coupon.png" alt="Preview of the coupon: three rows of four pads, red, yellow and green, over the word github.io in red" width="250">
 
 ## Getting started
 
@@ -90,7 +91,8 @@ sudo apt install libgl1 libx11-6        # Debian, Ubuntu
 
 ## Print it
 
-1. **Test print first.** Print `out/coupon.3mf` and one keychain, with the color changes below. The
+1. **Test print first.** Print `out/coupon.3mf` and one keychain with the name (its letters are the
+   smallest of all the parts), with the color changes below. The
    coupon has a row of pads for each color: from left to right, 1, 2, 3 and 4 layers of that color
    over the colors that are under it in the logo. Check three things:
    - **The changes fall on the right layer.** The first pad of the green row has one layer of
@@ -153,6 +155,7 @@ The parameters worth knowing:
 | `address` | `sovereign-selfheal.github.io` | text under the mark |
 | `address_width` | 112.0 | width of the text; the font size follows from it |
 | `keychain_size` | 40.0 | side of a keychain |
+| `name_text` | `sovereign-\|selfheal` | name on the keychain; `\|` starts a new line |
 | `ring_hole_dia` | 5.0 | hole for the key ring |
 | `slot_lean` | 15.0 | angle of the plaque in the stand, from the vertical |
 | `slot_clearance` | 0.6 | gap between the plaque and the slot |
@@ -170,7 +173,7 @@ small that the curves are thinner than four extrusions, or a stand that hides th
 src/logo_3d/
 ├── params.py     every dimension, the mark of the favicon, the spools and the bands
 ├── mark.py       the mark as flat sketches, one per color
-├── parts.py      plaque, keychain, stand, coupon and QR plaque; a plaque in its stand
+├── parts.py      plaque, keychains, stand, coupon and QR plaque; a plaque in its stand
 ├── preview.py    colored PNG previews
 ├── cli.py        the exporter
 └── fonts/        Red Hat Display Bold (SIL Open Font License)
