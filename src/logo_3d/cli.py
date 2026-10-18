@@ -11,7 +11,14 @@ from typing import get_type_hints
 from build123d import Mesher, Part, Unit, export_step, export_stl
 
 from logo_3d.params import DEFAULT, FILAMENTS, PETG_DENSITY, Params
-from logo_3d.parts import build_coupon, build_keychain, build_plaque, build_stand, split_bands
+from logo_3d.parts import (
+    build_coupon,
+    build_keychain,
+    build_plaque,
+    build_qr_plaque,
+    build_stand,
+    split_bands,
+)
 
 DEFAULT_OUT = Path("out")
 
@@ -21,6 +28,16 @@ PARTS: dict[str, Callable[[Params], Part]] = {
     "keychain": build_keychain,
     "stand": build_stand,
     "coupon": build_coupon,
+    "qr_plaque": build_qr_plaque,
+}
+
+#: The colors of each part (``SCHEMES`` in params.py).
+SCHEME_OF = {
+    "plaque": "logo",
+    "keychain": "logo",
+    "stand": "plain",
+    "coupon": "logo",
+    "qr_plaque": "qr",
 }
 
 #: Chordal tolerance for STL and 3MF: well below what the printer resolves.
@@ -91,7 +108,7 @@ def describe(name: str, part: Part, p: Params) -> str:
     grams = ", ".join(
         f"{FILAMENTS[band].name.removeprefix('Prusament PETG ')} "
         f"{piece.volume / 1000 * PETG_DENSITY:.1f} g"
-        for band, piece in split_bands(part, p).items()
+        for band, piece in split_bands(part, p, SCHEME_OF[name]).items()
     )
     return (
         f"{name}: {box.size.X:.1f} x {box.size.Y:.1f} x {box.size.Z:.2f} mm; solid material {grams}"
@@ -143,16 +160,18 @@ def _render_previews(part: Part, out_dir: Path, stem: str, p: Params) -> list[Pa
             "`uv sync --extra preview`. The geometry was exported normally."
         )
         return []
-    return render_views(part, out_dir, stem, p, STAND_VIEWS if stem == "stand" else VIEWS)
+    views = STAND_VIEWS if stem == "stand" else VIEWS
+    return render_views(part, out_dir, stem, p, views, SCHEME_OF[stem])
 
 
-def _render_on_stand(plaque: Part, stand: Part, out_dir: Path, p: Params) -> list[Path]:
-    """Render the plaque standing in the stand; like :func:`_render_previews`."""
+def _render_on_stand(name: str, plaque: Part, stand: Part, out_dir: Path, p: Params) -> list[Path]:
+    """Render a plaque standing in the stand; like :func:`_render_previews`."""
     try:
         from logo_3d.preview import render_on_stand
     except ImportError:
         return []
-    return [render_on_stand(plaque, stand, out_dir / "plaque_on_stand.png", p)]
+    path = out_dir / f"{name}_on_stand.png"
+    return [render_on_stand(plaque, stand, path, p, SCHEME_OF[name])]
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -178,8 +197,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             written += export_part(part, args.out, name, step=not args.no_step)
             if args.preview:
                 written += _render_previews(part, args.out, name, params)
-        if args.preview and "plaque" in built and "stand" in built:
-            written += _render_on_stand(built["plaque"], built["stand"], args.out, params)
+        for plaque in ("plaque", "qr_plaque"):
+            if args.preview and plaque in built and "stand" in built:
+                written += _render_on_stand(plaque, built[plaque], built["stand"], args.out, params)
     except (ValueError, RuntimeError) as error:
         print(f"invalid parameters: {error}")
         return 2

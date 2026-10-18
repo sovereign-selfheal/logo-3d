@@ -2,7 +2,8 @@
 
 The logo of the demo **Sovereign Self-Healing: LLM Routing and AI SRE Triage on OpenShift AI**
 (<https://sovereign-selfheal.github.io/>) as parts for a 3D printer with one nozzle: a table plaque
-with the address of the site, keychains, a stand for the plaque and a short test print. The model is
+with the address of the site, a second plaque with a QR code of the site, keychains, a stand for the
+plaques and a short test print. The model is
 written in [build123d](https://github.com/gumyr/build123d) and exported to STL, 3MF and STEP.
 
 <img src="docs/plaque.png" alt="Preview of the plaque: a black rounded square with a red line and node that split into a yellow curve going up and a green curve going down, and the address of the site in red" width="380">
@@ -38,6 +39,21 @@ they do not show.
 The exporter prints this table for the current parameters. All parts with colors use the same
 heights, so they can share a plate (for example the plaque and a few keychains).
 
+## The QR plaque
+
+<img src="docs/qr-plaque.png" alt="Preview of the QR plaque: the black modules of a QR code on a light plate" width="300">
+
+A second plaque carries a QR code of <https://sovereign-selfheal.github.io/>, so the people at the
+table can open the site with their phone. It has two colors: a plate of Prusament PETG Signal White
+and the code in Jet Black, with one change at layer 13 (2.60 mm). Dark modules on a light plate
+are the form that every phone reads; some apps do not read a light code on a dark plate.
+
+The code uses error correction Q, so a reader still decodes it when a quarter of it is damaged,
+and it has a light margin of four modules. The plaque is as large and as thick as the logo plaque,
+so it stands in a second stand. The code sits half a slot above the centre: the stand hides the
+bottom 10 mm of the plaque, and the whole margin stays visible. The tests read the code back from
+the solid, module by module, and decode it.
+
 ## What you get
 
 | File | What it is |
@@ -46,8 +62,9 @@ heights, so they can share a plate (for example the plaque and a few keychains).
 | `out/keychain.3mf` | a 40 mm keychain with a hole for a key ring; add copies in the slicer |
 | `out/stand.3mf` | the stand: the plaque leans back by 15 degrees; one color, no color change |
 | `out/coupon.3mf` | the test print: a ladder of color pads and a sample of the address |
+| `out/qr_plaque.3mf` | the QR plaque, 140 mm: a QR code of the site, dark on light |
 | `out/*.stl`, `out/*.step` | the same parts as STL (any slicer) and STEP (real surfaces, for CAD) |
-| `out/*.png` | colored previews, with `--preview`; `plaque_on_stand.png` shows the plaque in its stand |
+| `out/*.png` | colored previews, with `--preview`; `*_on_stand.png` show the plaques in their stands |
 
 <img src="docs/keychain.png" alt="Preview of a keychain: the same mark on a 40 mm square, with a hole at the top" width="250"> <img src="docs/coupon.png" alt="Preview of the coupon: three rows of four pads, red, yellow and green, over the word github.io in red" width="250">
 
@@ -93,7 +110,10 @@ sudo apt install libgl1 libx11-6        # Debian, Ubuntu
    starts with that layer; the coupon shows if it does.
 4. **Print.** At each change the printer stops and asks for the next filament. Let it purge until
    the new color comes out clean: PETG keeps the old color in the nozzle for longer than PLA.
-5. **Print the stand** on its own, in one color (black is fine).
+5. **Print the QR plaque** in the same way, with other spools: start with Signal White and add
+   one change only, at layer 13 (2.60 mm), to Jet Black. Scan it with your phone before you take it
+   to the event. PETG is shiny: if a lamp reflects on the code, tilt the plaque a little.
+6. **Print the stand twice**, one for each plaque, on its own and in one color (black is fine).
 
 | Setting | Suggestion |
 |---|---|
@@ -136,6 +156,8 @@ The parameters worth knowing:
 | `ring_hole_dia` | 5.0 | hole for the key ring |
 | `slot_lean` | 15.0 | angle of the plaque in the stand, from the vertical |
 | `slot_clearance` | 0.6 | gap between the plaque and the slot |
+| `qr_url` | `https://sovereign-selfheal.github.io/` | address in the QR code |
+| `qr_error` | `q` | error correction of the QR code: `l`, `m`, `q` or `h` |
 
 `Params.validate()` refuses a combination that gives a part you cannot use, for example a keychain so
 small that the curves are thinner than four extrusions, or a stand that hides the address.
@@ -148,7 +170,7 @@ small that the curves are thinner than four extrusions, or a stand that hides th
 src/logo_3d/
 ├── params.py     every dimension, the mark of the favicon, the spools and the bands
 ├── mark.py       the mark as flat sketches, one per color
-├── parts.py      plaque, keychain, stand and coupon; the plaque in its stand
+├── parts.py      plaque, keychain, stand, coupon and QR plaque; a plaque in its stand
 ├── preview.py    colored PNG previews
 ├── cli.py        the exporter
 └── fonts/        Red Hat Display Bold (SIL Open Font License)

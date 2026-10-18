@@ -97,13 +97,15 @@ def _draw(pieces: list[tuple[str, Part]], path: Path, elev: float, azim: float) 
     return path
 
 
-def render(part: Part, path: Path, elev: float, azim: float, p: Params = DEFAULT) -> Path:
-    """Draw one view of ``part``, colored by band, and write it to ``path``.
+def render(
+    part: Part, path: Path, elev: float, azim: float, p: Params = DEFAULT, scheme: str = "logo"
+) -> Path:
+    """Draw one view of ``part`` in the colors of ``scheme`` and write it to ``path``.
 
     The slabs go from the lowest to the highest: seen from above, a slab can
     only hide the slabs below it.
     """
-    return _draw(list(split_bands(part, p).items()), path, elev, azim)
+    return _draw(list(split_bands(part, p, scheme).items()), path, elev, azim)
 
 
 def render_on_stand(
@@ -111,10 +113,11 @@ def render_on_stand(
     stand: Part,
     path: Path,
     p: Params = DEFAULT,
+    scheme: str = "logo",
     elev: float = 14.0,
     azim: float = -62.0,
 ) -> Path:
-    """The plaque standing in its stand, as on the table during a talk.
+    """A plaque standing in its stand, as on the table during a talk.
 
     The part of the plaque inside the slot is left out: the stand hides it. Then
     the stand can be drawn first, and the plaque, which is in front of the rest
@@ -124,7 +127,7 @@ def render_on_stand(
     above = Pos(0, 0, p.stand_height + reach / 2) * Box(reach, reach, reach)
     place = on_stand(p)
     pieces = [("base", stand)]
-    for name, piece in split_bands(plaque, p).items():
+    for name, piece in split_bands(plaque, p, scheme).items():
         pieces.append((name, (place * piece) & above))
     return _draw(pieces, path, elev, azim)
 
@@ -135,8 +138,10 @@ def render_views(
     stem: str,
     p: Params = DEFAULT,
     views: tuple[tuple[str, float, float], ...] = VIEWS,
+    scheme: str = "logo",
 ) -> list[Path]:
     """Render each view of ``views`` and return the files written."""
     return [
-        render(part, out_dir / f"{stem}_{name}.png", elev, azim, p) for name, elev, azim in views
+        render(part, out_dir / f"{stem}_{name}.png", elev, azim, p, scheme)
+        for name, elev, azim in views
     ]

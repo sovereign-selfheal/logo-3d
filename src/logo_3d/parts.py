@@ -1,4 +1,4 @@
-"""The printable parts: plaque, keychain, stand and test coupon.
+"""The printable parts: plaque, keychain, stand, test coupon and QR plaque.
 
 A single-nozzle printer prints one color per layer. So every colored element
 starts on top of the base and ends at the top of its own band (see
@@ -16,6 +16,7 @@ from functools import cache
 from math import cos, radians, sin
 from pathlib import Path
 
+import segno
 from build123d import (
     Align,
     Axis,
@@ -24,6 +25,7 @@ from build123d import (
     Location,
     Part,
     Pos,
+    Rectangle,
     RectangleRounded,
     Rot,
     Sketch,
@@ -33,7 +35,7 @@ from build123d import (
 )
 
 from logo_3d.mark import mark_outline, mark_sketches
-from logo_3d.params import BANDS, DEFAULT, Params
+from logo_3d.params import BANDS, DEFAULT, EXTRUSION_WIDTH, QR_OVERLAP, Params
 
 FONT = Path(__file__).with_name("fonts") / "RedHatDisplay-Bold.ttf"
 
@@ -168,24 +170,77 @@ def build_coupon(p: Params = DEFAULT) -> Part:
     return coupon + _raise(sample, p, p.band_top("gateway"))
 
 
-def has_bands(part: Part, p: Params = DEFAULT) -> bool:
-    """True for the parts with color bands; false for the stand, which has one color."""
-    return abs(part.bounding_box().max.Z - p.total_height) < 1e-6
+def qr_matrix(p: Params = DEFAULT) -> list[list[bool]]:
+    """The modules of the QR code of ``qr_url``, rows from the top; True is dark."""
+    code = segno.make(p.qr_url, error=p.qr_error, boost_error=False, micro=False)
+    return [[bool(module) for module in row] for row in code.matrix]
 
 
-def split_bands(part: Part, p: Params = DEFAULT) -> dict[str, Part]:
-    """Cut ``part`` into the slab of the base and the slab of each band.
+def qr_module_size(p: Params = DEFAULT) -> float:
+    """Side of one module: the code and its light margin fill the plaque above the slot.
 
-    The keys are ``"base"`` and the names in :data:`BANDS`. A part without
-    bands comes back whole, as its base.
+    The bottom of the plaque goes into the slot of the stand, so the margin under
+    the code starts ``slot_depth`` above the bottom edge: it stays whole when the
+    plaque stands.
     """
-    if not has_bands(part, p):
-        return {"base": part}
+    return (p.plaque_size - p.slot_depth) / (len(qr_matrix(p)) + 2 * p.qr_quiet_zone)
+
+
+def qr_centre_y(p: Params = DEFAULT) -> float:
+    """The code is half a slot above the centre of the plaque."""
+    return p.slot_depth / 2
+
+
+def _qr_sketch(matrix: list[list[bool]], module: float, centre_y: float) -> Sketch:
+    """The dark modules, one rectangle for each run of them in a row, centred on x = 0."""
+    half = len(matrix) * module / 2
+    runs = []
+    for row, cells in enumerate(matrix):
+        col = 0
+        while col < len(cells):
+            if not cells[col]:
+                col += 1
+                continue
+            start = col
+            while col < len(cells) and cells[col]:
+                col += 1
+            x = -half + (start + col) * module / 2
+            y = centre_y + half - (row + 0.5) * module
+            size = (col - start) * module + 2 * QR_OVERLAP, module + 2 * QR_OVERLAP
+            runs.append(Pos(x, y, 0) * Rectangle(*size))
+    return Sketch() + runs
+
+
+def build_qr_plaque(p: Params = DEFAULT) -> Part:
+    """A plaque with the QR code of the site: dark modules on a light plate.
+
+    It is as large and as thick as the plaque, so it stands in a second stand,
+    with the code above the slot. The corners are rounded no more than the light
+    margin is wide, so the margin stays whole at the corners of the code.
+    """
+    p.validate()
+    matrix = qr_matrix(p)
+    module = qr_module_size(p)
+    margin = p.qr_quiet_zone * module
+    if module < 5 * EXTRUSION_WIDTH:
+        raise ValueError(f"QR modules of {module:.2f} mm are too small: make the plaque larger")
+    plate = extrude(RectangleRounded(p.plaque_size, p.plaque_size, margin), amount=p.base_height)
+    top = p.slabs("qr")[-1][2]
+    return plate + _raise(_qr_sketch(matrix, module, qr_centre_y(p)), p, top)
+
+
+def split_bands(part: Part, p: Params = DEFAULT, scheme: str = "logo") -> dict[str, Part]:
+    """Cut ``part`` into one slab per color of its ``scheme`` (see ``SCHEMES``).
+
+    The keys are the filaments of the scheme, from the bed up. A part of the
+    "plain" scheme, the stand, comes back whole.
+    """
+    slabs = p.slabs(scheme)
+    if len(slabs) == 1:
+        return {slabs[0][0]: part}
     box = part.bounding_box()
-    slabs = {"base": (0.0, p.base_height)}
-    slabs.update({band: (p.band_bottom(band), p.band_top(band)) for band in BANDS})
     pieces = {}
-    for name, (low, high) in slabs.items():
+    for name, low, high in slabs:
         cutter = Pos(box.center().X, box.center().Y, (low + high) / 2) * Box(
             box.size.X + 2, box.size.Y + 2, high - low
         )

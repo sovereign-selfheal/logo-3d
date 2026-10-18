@@ -69,6 +69,9 @@ FILAMENTS = {
     "local": Filament("Prusament PETG Jungle Green", "#2f8a46"),
     "cloud": Filament("Prusament PETG Yellow Gold", "#d8a62a"),
     "gateway": Filament("Prusament PETG Lipstick Red", "#c3102b"),
+    # The QR plaque is dark on light, the only way that every phone reads it.
+    "qr_base": Filament("Prusament PETG Signal White", "#e8e8e8"),
+    "qr_code": Filament("Prusament PETG Jet Black", "#262626"),
 }
 
 #: What each color is used for.
@@ -77,7 +80,22 @@ BAND_CONTENT = {
     "local": "curve and dot of the local model",
     "cloud": "curve and dot of the cloud model",
     "gateway": "line and node of the gateway, and the address",
+    "qr_base": "the plate of the QR plaque",
+    "qr_code": "the QR code",
 }
+
+#: The colors of each kind of part, from the bed up: the base, then one band of
+#: ``band_layers`` layers for each next color.
+SCHEMES = {
+    "logo": ("base", *BANDS),
+    "qr": ("qr_base", "qr_code"),
+    # The stand: one color from the bottom to the top.
+    "plain": ("base",),
+}
+
+#: The modules of the QR code grow by this much on each side. Two modules that
+#: touch only at a corner then overlap a little, and the solid stays manifold.
+QR_OVERLAP = 0.01
 
 
 @dataclass(frozen=True)
@@ -147,6 +165,17 @@ class Params:
     #: Part of the address, at the size it has on the plaque.
     sample_text: str = "github.io"
 
+    # --- QR plaque ------------------------------------------------------------
+    # As large and as thick as the plaque, so it stands in a second stand.
+    #: Address in the QR code.
+    qr_url: str = "https://sovereign-selfheal.github.io/"
+    #: Error correction of the code: l, m, q or h. With "q" a reader still
+    #: decodes the code when a quarter of it is damaged, for example by a string
+    #: of filament.
+    qr_error: str = "q"
+    #: Light margin around the code, in modules. Readers need four.
+    qr_quiet_zone: int = 4
+
     # --- Derived values -------------------------------------------------------
 
     @property
@@ -187,11 +216,20 @@ class Params:
     def slot_width(self) -> float:
         return self.base_height + self.slot_clearance
 
-    def color_changes(self) -> list[ColorChange]:
+    def slabs(self, scheme: str = "logo") -> list[tuple[str, float, float]]:
+        """The slab of each color of a part: (filament, bottom, top), from the bed up."""
+        base, *bands = SCHEMES[scheme]
+        slabs = [(base, 0.0, self.base_height)]
+        for index, band in enumerate(bands):
+            bottom = self.base_height + index * self.band_height
+            slabs.append((band, bottom, bottom + self.band_height))
+        return slabs
+
+    def color_changes(self, scheme: str = "logo") -> list[ColorChange]:
         """One filament change per band, at the first layer of the band."""
         changes = []
-        for band in BANDS:
-            layer = round(self.band_bottom(band) / self.layer_height) + 1
+        for band, bottom, _top in self.slabs(scheme)[1:]:
+            layer = round(bottom / self.layer_height) + 1
             changes.append(ColorChange(band, layer, layer * self.layer_height))
         return changes
 
@@ -232,6 +270,12 @@ class Params:
             problems.append("the slot is too deep for the height of the stand")
         if not self.address.strip() or not self.sample_text.strip():
             problems.append("the address and the sample text must not be empty")
+        if not self.qr_url.strip():
+            problems.append("the QR code needs an address")
+        if self.qr_error not in ("l", "m", "q", "h"):
+            problems.append(f"QR error correction {self.qr_error!r} is not one of l, m, q, h")
+        if self.qr_quiet_zone < 4:
+            problems.append("QR readers need a light margin of at least four modules")
         if problems:
             raise ValueError("; ".join(problems))
 
@@ -254,6 +298,15 @@ class Params:
             f"Last layer: {self.total_layers} (top {self.total_height:.2f} mm). "
             f"The stand has no color changes."
         )
+        qr_base, qr_code = self.slabs("qr")
+        (change,) = self.color_changes("qr")
+        lines += [
+            "",
+            f"QR plaque: start with {FILAMENTS[qr_base[0]].name}: {BAND_CONTENT[qr_base[0]]}.",
+            f"  layer {change.layer:3d}  (top {change.top:.2f} mm)  "
+            f"{FILAMENTS[change.band].name:30s} {BAND_CONTENT[change.band]}",
+            f"Last layer: {round(qr_code[2] / self.layer_height)} (top {qr_code[2]:.2f} mm).",
+        ]
         return "\n".join(lines)
 
 

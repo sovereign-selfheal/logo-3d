@@ -4,7 +4,9 @@ from __future__ import annotations
 
 from math import cos, radians, sin
 
+import numpy as np
 import pytest
+import zxingcpp
 from build123d import Circle, GeomType, Part, Pos, Sketch, Text, Vector, offset
 
 from logo_3d import parts
@@ -46,8 +48,19 @@ def coupon() -> Part:
 
 
 @pytest.fixture(scope="module")
-def all_parts(plaque, keychain, stand, coupon) -> dict[str, Part]:
-    return {"plaque": plaque, "keychain": keychain, "stand": stand, "coupon": coupon}
+def qr_plaque() -> Part:
+    return parts.build_qr_plaque(p)
+
+
+@pytest.fixture(scope="module")
+def all_parts(plaque, keychain, stand, coupon, qr_plaque) -> dict[str, Part]:
+    return {
+        "plaque": plaque,
+        "keychain": keychain,
+        "stand": stand,
+        "coupon": coupon,
+        "qr_plaque": qr_plaque,
+    }
 
 
 def _union(sketches: dict[str, Sketch]) -> Sketch:
@@ -78,9 +91,15 @@ def test_color_changes_fall_on_whole_layers():
     assert p.total_height == pytest.approx(p.total_layers * p.layer_height)
 
 
+def test_qr_plaque_has_one_change_to_black():
+    (change,) = p.color_changes("qr")
+    assert (change.band, change.layer) == ("qr_code", p.base_layers + 1)
+    assert change.top == pytest.approx(change.layer * p.layer_height)
+
+
 def test_summary_names_every_change():
     text = p.summary()
-    for change in p.color_changes():
+    for change in p.color_changes() + p.color_changes("qr"):
         assert f"layer {change.layer:3d}" in text
         assert f"top {change.top:.2f} mm" in text
 
@@ -107,6 +126,7 @@ def test_heights(all_parts):
         assert box.min.Z == pytest.approx(0.0), name
         assert box.max.Z == pytest.approx(p.total_height), name
     assert all_parts["stand"].bounding_box().max.Z == pytest.approx(p.stand_height)
+    assert all_parts["qr_plaque"].bounding_box().max.Z == pytest.approx(p.slabs("qr")[-1][2])
 
 
 def test_split_bands_keeps_all_the_material(plaque, stand):
@@ -114,7 +134,7 @@ def test_split_bands_keeps_all_the_material(plaque, stand):
     assert list(pieces) == ["base", *BANDS]
     assert all(piece.volume > 0 for piece in pieces.values())
     assert sum(piece.volume for piece in pieces.values()) == pytest.approx(plaque.volume, rel=1e-4)
-    assert list(parts.split_bands(stand, p)) == ["base"]
+    assert list(parts.split_bands(stand, p, "plain")) == ["base"]
 
 
 # --- The mark: each element ends at the top of its band -----------------------
@@ -180,6 +200,10 @@ def _plaque_in_stand(plaque: Part, sink: float = 0.0) -> Part:
     return parts.on_stand(p) * Pos(0, -sink, 0) * plaque
 
 
+def test_qr_plaque_stands_in_the_slot_too(qr_plaque, stand):
+    assert (stand & _plaque_in_stand(qr_plaque)).volume < 1e-3
+
+
 def test_plaque_stands_in_the_slot(plaque, stand):
     placed = _plaque_in_stand(plaque)
     assert (stand & placed).volume < 1e-3, "the plaque does not fit the slot"
@@ -213,6 +237,58 @@ def test_coupon_has_a_pad_for_every_layer_count(coupon):
     assert tops == expected
 
 
+# --- QR plaque -------------------------------------------------------------------
+
+
+def _sample_modules(qr_plaque: Part) -> list[list[bool]]:
+    """Read the code back from the solid: a dark module is material at its top height."""
+    size = len(parts.qr_matrix(p))
+    module = parts.qr_module_size(p)
+    half = size * module / 2
+    centre = parts.qr_centre_y(p)
+    top = p.slabs("qr")[-1][2]
+    return [
+        [
+            qr_plaque.is_inside(
+                Vector(
+                    -half + (col + 0.5) * module, centre + half - (row + 0.5) * module, top - EPS
+                )
+            )
+            for col in range(size)
+        ]
+        for row in range(size)
+    ]
+
+
+def test_qr_plaque_carries_the_code_of_the_site(qr_plaque):
+    modules = _sample_modules(qr_plaque)
+    assert modules == parts.qr_matrix(p)
+    # Decode it like a phone would: dark modules on a light margin of four modules.
+    image = np.full((len(modules) + 8, len(modules) + 8), 255, dtype=np.uint8)
+    image[4:-4, 4:-4] = np.where(np.array(modules), 0, 255)
+    image = np.kron(image, np.ones((8, 8), dtype=np.uint8))
+    texts = [result.text for result in zxingcpp.read_barcodes(image)]
+    assert texts == [p.qr_url]
+
+
+def test_qr_margin_stays_whole_above_the_stand(qr_plaque):
+    module = parts.qr_module_size(p)
+    margin = p.qr_quiet_zone * module
+    assert module >= 5 * EXTRUSION_WIDTH
+    half = len(parts.qr_matrix(p)) * module / 2
+    centre = parts.qr_centre_y(p)
+    top = p.slabs("qr")[-1][2]
+    # Nothing dark just outside each side of the code.
+    outside = [(0, centre + half), (0, centre - half), (half, centre), (-half, centre)]
+    for (x, y), (dx, dy) in zip(outside, [(0, EPS), (0, -EPS), (EPS, 0), (-EPS, 0)], strict=True):
+        assert not qr_plaque.is_inside(Vector(x + dx, y + dy, top - EPS)), (x, y)
+    # A full margin above the code, and above the slot of the stand under it.
+    assert p.plaque_size / 2 - (centre + half) == pytest.approx(margin)
+    above_slot = (centre - half) - (-p.plaque_size / 2 + p.slot_depth)
+    assert above_slot == pytest.approx(margin)
+    assert p.plaque_size / 2 - half >= margin
+
+
 # --- Parameters and command line ------------------------------------------------
 
 
@@ -224,6 +300,8 @@ def test_coupon_has_a_pad_for_every_layer_count(coupon):
         {"band_layers": 0},
         {"plaque_size": 230.0},
         {"address": "  "},
+        {"qr_error": "x"},
+        {"qr_quiet_zone": 2},
     ],
 )
 def test_validate_refuses_bad_parameters(changes):
@@ -238,9 +316,15 @@ def test_cli_exports_the_keychain(tmp_path, capsys):
     assert "layer  13" in capsys.readouterr().out
 
 
-def test_cli_previews_the_plaque_on_its_stand(tmp_path):
+def test_cli_previews_the_plaques_on_their_stands(tmp_path):
     assert main(["--preview", "--no-step", "--out", str(tmp_path)]) == 0
     assert (tmp_path / "plaque_on_stand.png").stat().st_size > 0
+    assert (tmp_path / "qr_plaque_on_stand.png").stat().st_size > 0
+    # The preview of the QR plaque is readable too.
+    from PIL import Image
+
+    image = Image.open(tmp_path / "qr_plaque_top.png")
+    assert [result.text for result in zxingcpp.read_barcodes(image)] == [p.qr_url]
 
 
 def test_cli_reports_bad_parameters(tmp_path, capsys):

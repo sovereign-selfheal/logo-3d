@@ -5,8 +5,9 @@ Guidance for AI coding agents and humans working in this repo. Read it fully bef
 ## 1. Purpose
 
 The logo of the demo as printable parts, for events where the demo is presented (the first one is
-Linux Day Milano, 2026-10-24): a table plaque with the address of the site, keychains, a stand for the
-plaque and a test coupon. The model is written in build123d and exported to STL, 3MF and STEP. This
+Linux Day Milano, 2026-10-24): a table plaque with the address of the site, a plaque with a QR code of
+the site, keychains, a stand for the plaques and a test coupon. The model is written in build123d and
+exported to STL, 3MF and STEP. This
 repo changes no cluster, and no other repo depends on it.
 
 ## 2. Contracts
@@ -14,7 +15,7 @@ repo changes no cluster, and no other repo depends on it.
 | Owner | Items |
 |---|---|
 | `logo-3d` (this repo) | The parts, their parameters, the color bands and the spools (`src/logo_3d/params.py`) |
-| `sovereign-selfheal.github.io` | The mark: `favicon.svg`. The `MARK_*` constants copy its geometry; when the favicon changes, change them and export again |
+| `sovereign-selfheal.github.io` | The mark: `favicon.svg`. The `MARK_*` constants copy its geometry; when the favicon changes, change them and export again. The address of the site is in `address` and in `qr_url` |
 
 ## 3. Rules
 
@@ -30,6 +31,9 @@ repo changes no cluster, and no other repo depends on it.
 4. **Every dimension in `params.py`.** The model code has no millimetre values. Each field of
    `Params` is also an option of the exporter.
 5. **Only the mark of the demo.** Never add the Red Hat logo or another trademark to a part.
+6. **A QR code that every phone reads.** Dark modules on a light plate, error correction `q` or
+   higher, a light margin of four modules, modules of five extrusions or more. The tests read the
+   code back from the solid and decode it with zxing-cpp; keep that test.
 
 ## 4. Layout
 
@@ -37,7 +41,7 @@ repo changes no cluster, and no other repo depends on it.
 src/logo_3d/
   params.py     every dimension, the favicon geometry, the spools and the bands
   mark.py       the mark as flat sketches, one per band
-  parts.py      plaque, keychain, stand and coupon; on_stand() places the plaque in the stand,
+  parts.py      plaque, keychain, stand, coupon and QR plaque; on_stand() places a plaque in the stand,
                 split_bands() cuts a part by color
   preview.py    colored PNG previews (matplotlib)
   cli.py        the exporter (scripts/export.py runs it from the repo)
