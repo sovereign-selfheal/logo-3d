@@ -1,0 +1,16 @@
+Sovereign Self-Healing: logo-3d
+Copyright 2026 the sovereign-selfheal contributors
+
+This is a community demo, not a Red Hat product. Red Hat, OpenShift and the names of the
+Red Hat products are trademarks of Red Hat, Inc. in the United States and other countries.
+Prusa, Prusament and PrusaSlicer are trademarks of Prusa Research. Other names are
+trademarks of their respective owners.
+
+The mark is the logo of the Sovereign Self-Healing demo (favicon.svg of
+https://sovereign-selfheal.github.io/). It is not a Red Hat logo.
+
+The font in src/logo_3d/fonts/ is Red Hat Display Bold, version 1.030,
+Copyright 2021 The Red Hat Project Authors (https://github.com/RedHatOfficial/RedHatFont,
+commit 6bb1048a6402), licensed under the SIL Open Font License, Version 1.1
+(src/logo_3d/fonts/OFL.txt). It is a free font and does not make this repository a Red Hat
+product.
