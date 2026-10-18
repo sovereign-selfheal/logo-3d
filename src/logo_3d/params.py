@@ -21,6 +21,11 @@ from typing import NamedTuple
 #: more, so the slicer can draw them with real perimeters.
 EXTRUSION_WIDTH = 0.4
 
+#: Small separate parts of a text, such as a hyphen or the dot of an i, are made
+#: at least this thick. On the first printed keychain the hyphen of Red Hat
+#: Display Bold was 0.77 mm thick, and it did not print.
+MIN_ISLAND = 3 * EXTRUSION_WIDTH
+
 #: Density of PETG, for the filament estimate (Prusament PETG data sheet).
 PETG_DENSITY = 1.27
 
@@ -144,8 +149,9 @@ class Params:
     # As wide as the keychain and with the same mark and hole, but longer: the
     # name of the project goes under the mark, in the color of the gateway.
     #: The name; "|" starts a new line. On one line, 40 mm wide, its strokes
-    #: would be too thin to print.
-    name_text: str = "sovereign-|selfheal"
+    #: would be too thin to print. No hyphen at the end of the first line: at
+    #: this size it was too thin and did not print.
+    name_text: str = "sovereign|selfheal"
     #: Width of the longest line; the font size follows from it.
     name_width: float = 34.0
     #: Distance between two baselines, in units of the font size: the tail of

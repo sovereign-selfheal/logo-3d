@@ -33,6 +33,7 @@ from build123d import (
     TextAlign,
     chamfer,
     extrude,
+    scale,
 )
 
 from logo_3d.mark import mark_outline, mark_sketches
@@ -44,6 +45,7 @@ from logo_3d.params import (
     MARK_DOT_RADIUS,
     MARK_LOCAL,
     MARK_UNITS,
+    MIN_ISLAND,
     QR_OVERLAP,
     Params,
 )
@@ -79,9 +81,30 @@ def address_font_size(p: Params = DEFAULT) -> float:
     return _PROBE_SIZE * p.address_width / _text_width(p.address)
 
 
+def _thicken_islands(sketch: Sketch, size: float) -> Sketch:
+    """Make the small separate parts of a text at least ``MIN_ISLAND`` thick.
+
+    A part is small when it is shorter than half the font size: a hyphen, a full
+    stop, the dot of an i. Each one grows about its centre, only in the
+    directions where it is too thin, so a hyphen keeps its length and a dot
+    stays round. Letters are larger and do not change.
+    """
+    faces, changed = [], False
+    for face in sketch.faces():
+        box = face.bounding_box()
+        if max(box.size.X, box.size.Y) < size / 2:
+            factors = (max(1.0, MIN_ISLAND / box.size.X), max(1.0, MIN_ISLAND / box.size.Y), 1.0)
+            if factors != (1.0, 1.0, 1.0):
+                centre = box.center()
+                face = Pos(centre) * scale(Pos(-centre) * face, by=factors)
+                changed = True
+        faces.append(face)
+    return Sketch() + faces if changed else sketch
+
+
 def text_sketch(text: str, size: float, centre_x: float, bottom: float) -> Sketch:
     """``text`` in Red Hat Display Bold, centred on ``centre_x``, lowest point at ``bottom``."""
-    sketch = Text(text, size, font_path=str(FONT))
+    sketch = _thicken_islands(Text(text, size, font_path=str(FONT)), size)
     box = sketch.bounding_box()
     return Pos(centre_x - box.center().X, bottom - box.min.Y, 0) * sketch
 
@@ -129,6 +152,7 @@ def name_lines(p: Params = DEFAULT) -> list[Sketch]:
         text = Text(
             line, size, font_path=str(FONT), text_align=(TextAlign.CENTER, TextAlign.BOTTOM)
         )
+        text = _thicken_islands(text, size)
         if baseline is None:
             baseline = mark_bottom - p.name_gap - text.bounding_box().max.Y
         else:

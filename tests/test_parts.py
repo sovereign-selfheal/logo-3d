@@ -20,6 +20,7 @@ from logo_3d.params import (
     MARK_LOCAL,
     MARK_NODE,
     MARK_STROKE,
+    MIN_ISLAND,
 )
 
 p = DEFAULT
@@ -204,6 +205,25 @@ def test_ring_hole_goes_through_and_clears_the_mark(name, all_parts):
     mark = _union(mark_sketches(p.keychain_scale))
     grown = Pos(x, y, 0) * Circle(p.ring_hole_dia / 2 + 2 * EXTRUSION_WIDTH)
     assert (mark & grown).area < 1e-6
+
+
+def _small_parts(sketch: Sketch, size: float) -> list:
+    """Bounding boxes of the separate parts shorter than half the font size."""
+    boxes = [face.bounding_box() for face in sketch.faces()]
+    return [box for box in boxes if max(box.size.X, box.size.Y) < size / 2]
+
+
+def test_small_parts_of_every_text_are_thick_enough():
+    address_size = parts.address_font_size(p)
+    texts = [(_address(), address_size)]
+    texts += [(line, parts.name_font_size(p)) for line in parts.name_lines(p)]
+    for sketch, size in texts:
+        for box in _small_parts(sketch, size):
+            assert min(box.size.X, box.size.Y) >= MIN_ISLAND - 1e-6, box.size
+    # The hyphen of the address keeps its length and only gets thicker.
+    hyphens = [b for b in _small_parts(_address(), address_size) if b.size.X > 2 * b.size.Y]
+    assert len(hyphens) == p.address.count("-")
+    assert hyphens[0].size.Y == pytest.approx(MIN_ISLAND)
 
 
 def test_name_is_printable_and_stays_clear(keychain_name, keychain):

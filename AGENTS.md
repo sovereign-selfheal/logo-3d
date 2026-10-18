@@ -26,7 +26,8 @@ and no other repo depends on it.
 2. **No support material.** Every part prints flat, with vertical walls. The only slanted walls are
    the ones of the slot of the stand, at `slot_lean` degrees from the vertical (keep it under 45).
 3. **Printable sizes.** The strokes of the mark stay at four extrusions (0.4 mm) or more, the strokes
-   of the text at two or more. `Params.validate()` refuses combinations that give a part you cannot
+   of the text at two or more. Small separate parts of a text (a hyphen, a dot) grow to `MIN_ISLAND`
+   (three extrusions): at 0.77 mm the hyphen of the first keychain did not print. `Params.validate()` refuses combinations that give a part you cannot
    use; add a check there when you find a new one.
 4. **Every dimension in `params.py`.** The model code has no millimetre values. Each field of
    `Params` is also an option of the exporter.

@@ -155,7 +155,7 @@ The parameters worth knowing:
 | `address` | `sovereign-selfheal.github.io` | text under the mark |
 | `address_width` | 112.0 | width of the text; the font size follows from it |
 | `keychain_size` | 40.0 | side of a keychain |
-| `name_text` | `sovereign-\|selfheal` | name on the keychain; `\|` starts a new line |
+| `name_text` | `sovereign\|selfheal` | name on the keychain; `\|` starts a new line |
 | `ring_hole_dia` | 5.0 | hole for the key ring |
 | `slot_lean` | 15.0 | angle of the plaque in the stand, from the vertical |
 | `slot_clearance` | 0.6 | gap between the plaque and the slot |
