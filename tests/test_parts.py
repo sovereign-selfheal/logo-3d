@@ -5,7 +5,7 @@ from __future__ import annotations
 from math import cos, radians, sin
 
 import pytest
-from build123d import Circle, GeomType, Part, Pos, Rot, Sketch, Text, Vector, offset
+from build123d import Circle, GeomType, Part, Pos, Sketch, Text, Vector, offset
 
 from logo_3d import parts
 from logo_3d.cli import main
@@ -176,16 +176,8 @@ def test_ring_hole_goes_through_and_clears_the_mark(keychain):
 
 
 def _plaque_in_stand(plaque: Part, sink: float = 0.0) -> Part:
-    """The plaque standing in the slot: front towards -y, bottom edge on the floor.
-
-    ``sink`` moves it further down along its own plane.
-    """
-    return (
-        Pos(*parts.slot_bottom(p))
-        * Rot(90 - p.slot_lean, 0, 0)
-        * Pos(0, p.plaque_size / 2 - sink, -p.base_height / 2)
-        * plaque
-    )
+    """The plaque in the slot; ``sink`` moves it further down along its own plane."""
+    return parts.on_stand(p) * Pos(0, -sink, 0) * plaque
 
 
 def test_plaque_stands_in_the_slot(plaque, stand):
@@ -244,6 +236,11 @@ def test_cli_exports_the_keychain(tmp_path, capsys):
     assert (tmp_path / "keychain.stl").stat().st_size > 0
     assert (tmp_path / "keychain.3mf").stat().st_size > 0
     assert "layer  13" in capsys.readouterr().out
+
+
+def test_cli_previews_the_plaque_on_its_stand(tmp_path):
+    assert main(["--preview", "--no-step", "--out", str(tmp_path)]) == 0
+    assert (tmp_path / "plaque_on_stand.png").stat().st_size > 0
 
 
 def test_cli_reports_bad_parameters(tmp_path, capsys):

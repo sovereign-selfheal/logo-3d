@@ -146,12 +146,22 @@ def _render_previews(part: Part, out_dir: Path, stem: str, p: Params) -> list[Pa
     return render_views(part, out_dir, stem, p, STAND_VIEWS if stem == "stand" else VIEWS)
 
 
+def _render_on_stand(plaque: Part, stand: Part, out_dir: Path, p: Params) -> list[Path]:
+    """Render the plaque standing in the stand; like :func:`_render_previews`."""
+    try:
+        from logo_3d.preview import render_on_stand
+    except ImportError:
+        return []
+    return [render_on_stand(plaque, stand, out_dir / "plaque_on_stand.png", p)]
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     params = params_from_args(args)
     names = list(PARTS) if args.only == "all" else [args.only]
 
     written: list[Path] = []
+    built: dict[str, Part] = {}
     # The build is inside the guard too: a parameter set that validate() does
     # not reject yet should still reach the user as a sentence, not as an
     # OpenCascade traceback.
@@ -161,10 +171,15 @@ def main(argv: Sequence[str] | None = None) -> int:
         print()
         for name in names:
             part = PARTS[name](params)
+            # The name of the object in the 3MF file, and in the slicer.
+            part.label = name
+            built[name] = part
             print(describe(name, part, params))
             written += export_part(part, args.out, name, step=not args.no_step)
             if args.preview:
                 written += _render_previews(part, args.out, name, params)
+        if args.preview and "plaque" in built and "stand" in built:
+            written += _render_on_stand(built["plaque"], built["stand"], args.out, params)
     except (ValueError, RuntimeError) as error:
         print(f"invalid parameters: {error}")
         return 2

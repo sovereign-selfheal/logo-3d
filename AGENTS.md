@@ -37,7 +37,8 @@ repo changes no cluster, and no other repo depends on it.
 src/logo_3d/
   params.py     every dimension, the favicon geometry, the spools and the bands
   mark.py       the mark as flat sketches, one per band
-  parts.py      plaque, keychain, stand and coupon; split_bands() cuts a part by color
+  parts.py      plaque, keychain, stand and coupon; on_stand() places the plaque in the stand,
+                split_bands() cuts a part by color
   preview.py    colored PNG previews (matplotlib)
   cli.py        the exporter (scripts/export.py runs it from the repo)
   fonts/        Red Hat Display Bold and its license (SIL OFL 1.1)

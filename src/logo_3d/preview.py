@@ -20,12 +20,12 @@ matplotlib.use("Agg")
 
 import matplotlib.pyplot as plt  # noqa: E402  (must follow the backend choice)
 import numpy as np  # noqa: E402
-from build123d import Part  # noqa: E402
+from build123d import Box, Part, Pos  # noqa: E402
 from matplotlib.colors import to_rgb  # noqa: E402
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection  # noqa: E402
 
 from logo_3d.params import DEFAULT, FILAMENTS, Params  # noqa: E402
-from logo_3d.parts import split_bands  # noqa: E402
+from logo_3d.parts import on_stand, split_bands  # noqa: E402
 
 #: Views rendered by default, as (name, elevation, azimuth) in degrees.
 VIEWS = (("top", 90.0, -90.0), ("iso", 35.0, -60.0))
@@ -46,8 +46,12 @@ def _triangles(part: Part, tolerance: float = 0.05) -> np.ndarray:
     return points[np.array(faces)]
 
 
-def render(part: Part, path: Path, elev: float, azim: float, p: Params = DEFAULT) -> Path:
-    """Draw one view of ``part``, colored by band, and write it to ``path``."""
+def _draw(pieces: list[tuple[str, Part]], path: Path, elev: float, azim: float) -> Path:
+    """Draw ``(filament, part)`` pieces in their colors, in the order given.
+
+    A later piece is drawn over an earlier one, so the caller orders them from
+    the back to the front of the view.
+    """
     eye = _eye_vector(elev, azim)
     light = eye + np.array([0.3, 0.2, 0.6])
     light /= np.linalg.norm(light)
@@ -55,13 +59,12 @@ def render(part: Part, path: Path, elev: float, azim: float, p: Params = DEFAULT
     fig = plt.figure(figsize=(9, 9), dpi=100)
     ax = fig.add_subplot(projection="3d")
     ax.set_proj_type("ortho")
-    # One collection per slab, drawn from the lowest to the highest. Seen from
-    # above, a slab can only hide the slabs below it, and matplotlib's depth
-    # sort of single triangles gets this wrong with the large faces of the base.
+    # One collection per piece, in the order given: matplotlib's depth sort of
+    # single triangles gets it wrong with the large faces of the base.
     ax.computed_zorder = False
 
     all_tris = []
-    for order, (name, piece) in enumerate(split_bands(part, p).items()):
+    for order, (name, piece) in enumerate(pieces):
         tris = _triangles(piece)
         normals = np.cross(tris[:, 1] - tris[:, 0], tris[:, 2] - tris[:, 0])
         lengths = np.linalg.norm(normals, axis=1, keepdims=True)
@@ -92,6 +95,38 @@ def render(part: Part, path: Path, elev: float, azim: float, p: Params = DEFAULT
     fig.savefig(path, bbox_inches="tight", pad_inches=0.05, facecolor="white")
     plt.close(fig)
     return path
+
+
+def render(part: Part, path: Path, elev: float, azim: float, p: Params = DEFAULT) -> Path:
+    """Draw one view of ``part``, colored by band, and write it to ``path``.
+
+    The slabs go from the lowest to the highest: seen from above, a slab can
+    only hide the slabs below it.
+    """
+    return _draw(list(split_bands(part, p).items()), path, elev, azim)
+
+
+def render_on_stand(
+    plaque: Part,
+    stand: Part,
+    path: Path,
+    p: Params = DEFAULT,
+    elev: float = 14.0,
+    azim: float = -62.0,
+) -> Path:
+    """The plaque standing in its stand, as on the table during a talk.
+
+    The part of the plaque inside the slot is left out: the stand hides it. Then
+    the stand can be drawn first, and the plaque, which is in front of the rest
+    of the stand in this view, over it.
+    """
+    reach = 2 * (p.plaque_size + p.stand_length)
+    above = Pos(0, 0, p.stand_height + reach / 2) * Box(reach, reach, reach)
+    place = on_stand(p)
+    pieces = [("base", stand)]
+    for name, piece in split_bands(plaque, p).items():
+        pieces.append((name, (place * piece) & above))
+    return _draw(pieces, path, elev, azim)
 
 
 def render_views(

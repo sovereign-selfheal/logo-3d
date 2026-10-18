@@ -11,6 +11,11 @@ The mark is the favicon of the site. A request (the red line) reaches the gatewa
 which sends it to the cloud model (the curve going up) or to the local model (the curve going down).
 Its geometry is copied from `favicon.svg` into `src/logo_3d/params.py`.
 
+On the table, the plaque stands in the slot of its stand and leans back by 15 degrees, so the
+people in the room can see it:
+
+<img src="docs/plaque-on-stand.png" alt="The plaque standing in its stand, a low black block, and leaning back a little" width="380">
+
 ## Four colors with one nozzle
 
 A printer with one nozzle prints one color per layer. So every colored part of the logo starts on
@@ -42,7 +47,7 @@ heights, so they can share a plate (for example the plaque and a few keychains).
 | `out/stand.3mf` | the stand: the plaque leans back by 15 degrees; one color, no color change |
 | `out/coupon.3mf` | the test print: a ladder of color pads and a sample of the address |
 | `out/*.stl`, `out/*.step` | the same parts as STL (any slicer) and STEP (real surfaces, for CAD) |
-| `out/*.png` | colored previews, with `--preview` |
+| `out/*.png` | colored previews, with `--preview`; `plaque_on_stand.png` shows the plaque in its stand |
 
 <img src="docs/keychain.png" alt="Preview of a keychain: the same mark on a 40 mm square, with a hole at the top" width="250"> <img src="docs/coupon.png" alt="Preview of the coupon: three rows of four pads, red, yellow and green, over the word github.io in red" width="250">
 
@@ -143,7 +148,7 @@ small that the curves are thinner than four extrusions, or a stand that hides th
 src/logo_3d/
 ├── params.py     every dimension, the mark of the favicon, the spools and the bands
 ├── mark.py       the mark as flat sketches, one per color
-├── parts.py      plaque, keychain, stand and coupon
+├── parts.py      plaque, keychain, stand and coupon; the plaque in its stand
 ├── preview.py    colored PNG previews
 ├── cli.py        the exporter
 └── fonts/        Red Hat Display Bold (SIL Open Font License)

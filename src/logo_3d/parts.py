@@ -21,6 +21,7 @@ from build123d import (
     Axis,
     Box,
     Circle,
+    Location,
     Part,
     Pos,
     RectangleRounded,
@@ -118,6 +119,19 @@ def build_stand(p: Params = DEFAULT) -> Part:
         align=(Align.CENTER, Align.CENTER, Align.MIN),
     )
     return block - Pos(*slot_bottom(p)) * Rot(-p.slot_lean, 0, 0) * slot
+
+
+def on_stand(p: Params = DEFAULT) -> Location:
+    """Where the plaque goes when it stands in the slot of the stand.
+
+    Its front faces -y, like the front of the stand, and its bottom edge rests
+    on the floor of the slot, in the middle of its width.
+    """
+    return (
+        Pos(*slot_bottom(p))
+        * Rot(90 - p.slot_lean, 0, 0)
+        * Pos(0, p.plaque_size / 2, -p.base_height / 2)
+    )
 
 
 def build_coupon(p: Params = DEFAULT) -> Part:
