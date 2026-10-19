@@ -278,6 +278,17 @@ def test_stand_hides_no_part_of_the_address():
     assert p.address_bottom > p.slot_depth + 2
 
 
+def test_address_sits_halfway_between_stand_and_mark():
+    # On the stand, the free space under the address (down to the top of the
+    # stand) and over it (up to the lowest dot of the mark) look about the same.
+    half = p.plaque_size / 2
+    address = _address().bounding_box()
+    mark = _union(mark_sketches(p.plaque_scale, (0.0, p.plaque_mark_shift))).bounding_box()
+    under = address.min.Y + half - p.slot_depth
+    over = mark.min.Y - address.max.Y
+    assert abs(under - over) < 2.0, f"{under:.1f} mm under the address, {over:.1f} mm over it"
+
+
 # --- Coupon --------------------------------------------------------------------
 
 

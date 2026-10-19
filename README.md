@@ -154,6 +154,7 @@ The parameters worth knowing:
 | `plaque_size` | 140.0 | side of the plaque |
 | `address` | `sovereign-selfheal.github.io` | text under the mark |
 | `address_width` | 112.0 | width of the text; the font size follows from it |
+| `address_bottom` | 19.0 | height of the tail of the g above the bottom edge; the stand hides the lowest 10 mm |
 | `keychain_size` | 40.0 | side of a keychain |
 | `name_text` | `sovereign\|selfheal` | name on the keychain; `\|` starts a new line |
 | `ring_hole_dia` | 5.0 | hole for the key ring |

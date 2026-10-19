@@ -134,8 +134,10 @@ class Params:
     #: Width of the line of text; the font size follows from it.
     address_width: float = 112.0
     #: Height of the lowest point of the text (the tail of the g) above the
-    #: bottom edge of the plaque. It keeps the text clear of the stand.
-    address_bottom: float = 16.0
+    #: bottom edge of the plaque. The stand hides the lowest ``slot_depth``
+    #: millimetres; at 19 mm the text sits about halfway between the top of the
+    #: stand and the lowest dot of the mark (9 mm under it, 11 mm over it).
+    address_bottom: float = 19.0
 
     # --- Keychain -------------------------------------------------------------
     #: Side of a keychain.
